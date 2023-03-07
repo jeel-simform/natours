@@ -30,11 +30,11 @@ mongoose
     useUnifiedTopology: true,
   })
   .then(() => {
-    console.log("connected to database");
+    // console.log("connected to database");
   });
 
 app.listen(port, () => {
-  console.log("server is listen on port", port);
+  //   console.log("server is listen on port", port);
 });
 
 module.exports = app;
