@@ -1,37 +1,40 @@
-const fs=require('fs');
+const morgan = require("morgan");
+const express = require("express");
+const dotenv = require("dotenv");
+const mongoose = require("mongoose");
 
-const morgan=require('morgan')
-const express=require('express')
+const tourRouter = require("./routes/tourRoutes");
+const userRouter = require("./routes/userRoutes");
 
-if(process.env.NODE_ENv==='development'){
-    app.use(morgan('dev'))
+dotenv.config();
+const app = express();
 
-}
-
-const tourRouter=require('./routes/tourRoutes')
-const userRouter=require('./routes/userRoutes')
-
-const app=express();
+const DB_CONNECTION_URL = process.env.DATABASE;
+const port = process.env.PORT;
 
 app.use(express.json());
-app.use(express.static(`${__dirname}/public`))
+app.use(express.static(`${__dirname}/public`));
 
+if (process.env.NODE_ENV === "development") {
+  app.use(morgan("dev"));
+}
 
+app.use("/api/v1", tourRouter);
+app.use("/api/v1", userRouter);
 
-const tours= JSON.parse(fs.readFileSync(`${__dirname}/dev-data/data/tours-simple.json`))
+mongoose
+  .connect(DB_CONNECTION_URL, {
+    useNewUrlParser: true,
+    useCreateIndex: true,
+    useFindAndModify: false,
+    useUnifiedTopology: true,
+  })
+  .then(() => {
+    console.log("connected to database");
+  });
 
+app.listen(port, () => {
+  console.log("server is listen on port", port);
+});
 
-app.use('/api/v1/tours',tourRouter);
-app.use('/api/v1/users',userRouter);
-
-// app.get('/api/v1/tours',getAllTours)
-
-// app.get('/api/v1/tours/:id',getTour)
-
-// app.post('/api/v1/tours',createTour)
-
-// app.patch('/api/v1/tours/:id',updateTour)
-
-// app.delete('/api/v1/tours/:id',deleteTour)
-
-module.exports=app;
+module.exports = app;
