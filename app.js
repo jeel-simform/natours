@@ -3,8 +3,8 @@ const express = require("express");
 const dotenv = require("dotenv");
 const mongoose = require("mongoose");
 
-const tourRouter = require("./routes/tourRoutes");
-const userRouter = require("./routes/userRoutes");
+const tourRouter = require("./routes/tour");
+const userRouter = require("./routes/user");
 const { natoursLogger } = require("./logger/logger");
 
 dotenv.config();
@@ -39,5 +39,3 @@ app.listen(port, () => {
   //   console.log("server is listen on port", port);
   natoursLogger.log("info", `server is listen on port ${port}`);
 });
-
-module.exports = app;

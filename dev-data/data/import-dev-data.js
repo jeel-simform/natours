@@ -16,7 +16,6 @@ mongoose
   })
   .then(() => {
     natoursLogger.log("info", "connected to database");
-    // console.log("connected to database");
   });
 
 const tours = fs.readFileSync(`${__dirname}/tours-simple.json`, "utf-8");
@@ -25,9 +24,7 @@ const importData = async () => {
   try {
     await Tour.create(JSON.parse(tours));
     natoursLogger.log("info", "data imported");
-    // console.log("data successfully loaded!!");
   } catch (err) {
-    // console.log(err);
     natoursLogger.log("error", err);
   }
   process.exit();
@@ -36,9 +33,8 @@ const importData = async () => {
 const deleteData = async () => {
   try {
     await Tour.deleteMany();
-    // console.log("data deleted");
   } catch (err) {
-    // console.log(err);
+    throw new Error(err);
   }
   process.exit();
 };
