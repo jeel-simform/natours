@@ -1,13 +1,19 @@
 const express = require("express");
-const tourController = require("../controller/tourController");
+const {
+  createTour,
+  deleteTour,
+  getAllTours,
+  getTour,
+  updateTour,
+} = require("../controller/tour");
 
 const router = express.Router();
 
-router.get("/tours", tourController.getAllTours);
-router.post("/tours", tourController.createTour);
+router.get("/tours", getAllTours);
+router.post("/tours", createTour);
 
-router.get("/users:id", tourController.getTour);
-router.patch("/users:id", tourController.updateTour);
-router.delete("/users:id", tourController.deleteTour);
+router.get("/users:id", getTour);
+router.patch("/users:id", updateTour);
+router.delete("/users:id", deleteTour);
 
 module.exports = router;

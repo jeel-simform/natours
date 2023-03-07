@@ -5,6 +5,7 @@ const mongoose = require("mongoose");
 
 const tourRouter = require("./routes/tourRoutes");
 const userRouter = require("./routes/userRoutes");
+const { natoursLogger } = require("./logger/logger");
 
 dotenv.config();
 const app = express();
@@ -30,11 +31,13 @@ mongoose
     useUnifiedTopology: true,
   })
   .then(() => {
+    natoursLogger.log("info", "connected to database");
     // console.log("connected to database");
   });
 
 app.listen(port, () => {
   //   console.log("server is listen on port", port);
+  natoursLogger.log("info", `server is listen on port ${port}`);
 });
 
 module.exports = app;

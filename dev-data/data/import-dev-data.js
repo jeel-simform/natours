@@ -1,7 +1,8 @@
 const mongoose = require("mongoose");
 const dotenv = require("dotenv");
 const fs = require("fs");
-const Tour = require("../../models/tourModel");
+const Tour = require("../../models/Tour");
+const { natoursLogger } = require("../../logger/logger");
 
 dotenv.config({ path: "./config.env" });
 
@@ -14,6 +15,7 @@ mongoose
     useFindAndModify: true,
   })
   .then(() => {
+    natoursLogger.log("info", "connected to database");
     // console.log("connected to database");
   });
 
@@ -22,9 +24,11 @@ const tours = fs.readFileSync(`${__dirname}/tours-simple.json`, "utf-8");
 const importData = async () => {
   try {
     await Tour.create(JSON.parse(tours));
+    natoursLogger.log("info", "data imported");
     // console.log("data successfully loaded!!");
   } catch (err) {
     // console.log(err);
+    natoursLogger.log("error", err);
   }
   process.exit();
 };
