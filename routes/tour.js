@@ -5,12 +5,16 @@ const {
   getAllTours,
   getTour,
   updateTour,
+  getTourStats,
+  getMonthlyPlan,
 } = require("../controller/tour");
 
 const router = express.Router();
 
 router.get("/tours", getAllTours);
 router.post("/tours", createTour);
+router.get("/tours/tour-stats", getTourStats);
+router.get("/tours/monthly-plan/:year", getMonthlyPlan);
 
 router.get("/users:id", getTour);
 router.patch("/users:id", updateTour);
