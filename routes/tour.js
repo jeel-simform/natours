@@ -9,9 +9,11 @@ const {
   getMonthlyPlan,
 } = require("../controller/tour");
 
+const { protect } = require("../controller/auth");
+
 const router = express.Router();
 
-router.get("/tours", getAllTours);
+router.get("/tours", protect, getAllTours);
 router.post("/tours", createTour);
 router.get("/tours/tour-stats", getTourStats);
 router.get("/tours/monthly-plan/:year", getMonthlyPlan);

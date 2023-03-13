@@ -89,11 +89,13 @@ const tourSchema = new mongoose.Schema(
   }
 );
 
+// eslint-disable-next-line func-names
 tourSchema.virtual("durationWeeks").get(function () {
   return this.duration / 7;
 });
 
 // doucment middleware : runs before save command and create command
+// eslint-disable-next-line func-names
 tourSchema.pre("save", function (next) {
   this.slug = slugify(this.name, { lower: true });
   next();
@@ -106,12 +108,14 @@ tourSchema.pre("save", function (next) {
 
 // Query middleware
 
+// eslint-disable-next-line func-names
 tourSchema.pre(/^find/, function (next) {
   this.find({ secretTour: { $ne: true } });
   next();
 });
 
 // aggregation middleware
+// eslint-disable-next-line func-names
 tourSchema.pre("aggregate", function (next) {
   this.pipeline().unshift({ $match: { secretTour: { $ne: true } } });
   next();

@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
+    "debug": "ndb app.js",
     "dev": "nodemon app.js",
     "start": "node app.js",
     "lint": "eslint .",
@@ -15,8 +16,10 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "bcryptjs": "^2.4.3",
     "dotenv": "^16.0.3",
     "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.0",
     "lint-staged": "^13.1.2",
     "mongoose": "^5.13.16",
     "morgan": "^1.10.0",
