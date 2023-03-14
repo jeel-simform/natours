@@ -2,6 +2,11 @@ const morgan = require("morgan");
 const express = require("express");
 const dotenv = require("dotenv");
 const mongoose = require("mongoose");
+const rateLimit = require("express-rate-limit");
+const helmet = require("helmet");
+const mongoSanitize = require("express-mongo-sanitize");
+const xss = require("xss-clean");
+const hpp = require("hpp");
 
 const tourRouter = require("./routes/tour");
 const userRouter = require("./routes/user");
@@ -13,8 +18,40 @@ const app = express();
 const DB_CONNECTION_URL = process.env.DATABASE;
 const port = process.env.PORT;
 
-app.use(express.json());
+const limiter = rateLimit({
+  max: 100,
+  windowMs: 60 * 60 * 1000,
+  message: "Too many request from this ip please try again an hour!",
+});
+app.use("/api", limiter);
+
+app.use(
+  express.json({
+    limit: "10kb",
+  })
+);
+
+// data sanitization again nosql query injection
+
+app.use(mongoSanitize());
+app.use(xss());
+
+// prevent parameter pollution
+app.use(
+  hpp({
+    whitelist: [
+      "duration",
+      "ratingsQuantity",
+      "ratingsAverage",
+      "maxGroupSize",
+      "difficulty",
+      "price",
+    ],
+  })
+);
+
 app.use(express.static(`${__dirname}/public`));
+app.use(helmet());
 
 if (process.env.NODE_ENV === "development") {
   app.use(morgan("dev"));
