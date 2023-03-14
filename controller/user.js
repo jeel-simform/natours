@@ -59,7 +59,7 @@ exports.updateMe = async (req, res, next) => {
   }
 
   const filteredBody = filterObj(req.body, "name", "email");
-  console.log(filteredBody);
+  // console.log(filteredBody);
 
   const updatedUser = await User.findByIdAndUpdate(req.user.id, filteredBody, {
     new: true,

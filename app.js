@@ -10,6 +10,8 @@ const hpp = require("hpp");
 
 const tourRouter = require("./routes/tour");
 const userRouter = require("./routes/user");
+const reviewRouter = require("./routes/review");
+
 const { natoursLogger } = require("./logger/logger");
 
 dotenv.config();
@@ -59,6 +61,7 @@ if (process.env.NODE_ENV === "development") {
 
 app.use("/api/v1", tourRouter);
 app.use("/api/v1", userRouter);
+app.use("/api/v1", reviewRouter);
 
 mongoose
   .connect(DB_CONNECTION_URL, {

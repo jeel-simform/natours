@@ -1,6 +1,5 @@
 /* eslint-disable consistent-return */
 /* eslint-disable no-underscore-dangle */
-
 const crypto = require("crypto");
 const jwt = require("jsonwebtoken");
 const { promisify } = require("util");
@@ -15,20 +14,28 @@ const signToken = (id) =>
 
 const createSendToken = (user, statusCode, res) => {
   const token = signToken(user._id);
+  // console.log(token);
   const cookieOptions = {
     expires: new Date(
-      Date.now() + process.env.JWT_EXPIRES_IN * 24 * 60 * 60 * 1000
+      Date.now() + process.env.JWT_COOKIE_EXPIRES_IN * 24 * 60 * 60 * 1000
     ),
     httpOnly: true,
   };
+  // console.log(cookieOptions);
   if (process.env.NODE_ENV === "production") cookieOptions.secure = true;
+
   res.cookie("jwt", token, cookieOptions);
 
+  // Remove password from output
   // eslint-disable-next-line no-param-reassign
   user.password = undefined;
+
   res.status(statusCode).json({
+    status: "success",
     token,
-    user,
+    data: {
+      user,
+    },
   });
 };
 
@@ -58,6 +65,7 @@ exports.login = async (req, res) => {
       });
     }
     const user = await User.findOne({ email }).select("+password");
+    // console.log(user);
 
     if (!user || !(await user.correctPassword(password, user.password))) {
       return res.status(401).json({
