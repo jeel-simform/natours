@@ -1,65 +1,73 @@
+const multer = require("multer");
+const sharp = require("sharp");
+
 const Tour = require("../models/Tour");
+const {
+  deleteOne,
+  updateOne,
+  createOne,
+  getOne,
+  getAll,
+} = require("./handlerFactory");
 
-exports.getAllTours = async (req, res) => {
-  try {
-    const { page, limit, sort, ...filter } = req.query;
+const multerStorage = multer.memoryStorage();
 
-    const skip = (page - 1) * limit;
-
-    const sortBy = sort ? sort.split(",").join(" ") : "-createdAt";
-
-    const tours = await Tour.find(filter).limit(limit).skip(skip).sort(sortBy);
-
-    res.status(200).json({
-      data: {
-        tours,
-        count: tours.length,
-      },
-    });
-  } catch (err) {
-    res.status(404).json({
-      status: "fail",
-      message: err,
-    });
+const multerFilter = (req, file, cb) => {
+  if (file.mimetype.startsWith("image")) {
+    cb(null, true);
+  } else {
+    cb(new Error("please upload image only"), false);
   }
 };
 
-exports.getTour = async (req, res) => {
-  // console.log(req.params.id);
-  try {
-    const tour = await Tour.findById(req.params.id).populate("reviews");
+const upload = multer({
+  storage: multerStorage,
+  fileFilter: multerFilter,
+});
 
-    res.status(200).json({
-      status: "success",
-      data: {
-        tour,
-      },
-    });
-  } catch (err) {
-    res.status(404).json({
-      status: "fail",
-      message: err,
-    });
-  }
+// for single and multiple images
+exports.uploadTourImages = upload.fields([
+  { name: "imageCover", maxCount: 1 },
+  { name: "images", maxCount: 3 },
+]);
+
+exports.resizeTourImages = async (req, res, next) => {
+  if (!req.files.imageCover || !req.files.images) return next();
+
+  // 1) Cover image
+  req.body.imageCover = `tour-${req.params.id}-${Date.now()}-cover.jpeg`;
+  await sharp(req.files.imageCover[0].buffer)
+    .resize(2000, 1333)
+    .toFormat("jpeg")
+    .jpeg({ quality: 90 })
+    .toFile(`public/img/tours/${req.body.imageCover}`);
+
+  // 2) Images
+  req.body.images = [];
+
+  await Promise.all(
+    req.files.images.map(async (file, i) => {
+      const filename = `tour-${req.params.id}-${Date.now()}-${i + 1}.jpeg`;
+
+      await sharp(file.buffer)
+        .resize(2000, 1333)
+        .toFormat("jpeg")
+        .jpeg({ quality: 90 })
+        .toFile(`public/img/tours/${filename}`);
+
+      req.body.images.push(filename);
+    })
+  );
+
+  return next();
 };
+// upload.array('images',5) => for multiple images only
 
-exports.createTour = async (req, res) => {
-  try {
-    const newTour = await Tour.create(req.body);
-    res.status(201).json({
-      status: "success",
-      data: {
-        tour: newTour,
-      },
-    });
-  } catch (err) {
-    res.status(400).json({
-      status: "fail",
-      message: err,
-    });
-  }
-};
+exports.getAllTours = getAll(Tour);
 
+exports.getTour = getOne(Tour, { path: "reviews" });
+
+exports.createTour = createOne(Tour);
 exports.updateTour = async (req, res) => {
   try {
     const tour = await Tour.findByIdAndUpdate(req.params.id, req.body, {
@@ -81,25 +89,9 @@ exports.updateTour = async (req, res) => {
   }
 };
 
-exports.deleteTour = async (req, res) => {
-  try {
-    // console.log("delete called");
-    const tour = await Tour.findByIdAndDelete(req.params.id);
-    // console.log(tour);
+exports.updateTour = updateOne(Tour);
 
-    res.status(200).json({
-      status: "success",
-      data: {
-        tour,
-      },
-    });
-  } catch (err) {
-    res.status(400).json({
-      status: "fail",
-      message: err,
-    });
-  }
-};
+exports.deleteTour = deleteOne(Tour);
 
 exports.getTourStats = async (req, res) => {
   try {
@@ -186,4 +178,62 @@ exports.getMonthlyPlan = async (req, res) => {
       message: err,
     });
   }
+};
+exports.getTourWithin = async (req, res, next) => {
+  const { distance, latlng, unit } = req.params;
+  const [lat, lng] = latlng.split(",");
+
+  const radius = unit === "mi" ? distance / 3963.2 : distance / 6378.1;
+
+  if (!lat || !lng) {
+    return res.status(400).json({
+      message: "please provide latitude and longitude in format lat and lng ",
+    });
+  }
+  const tours = await Tour.find({
+    startLocation: { $geoWithin: { $centerSphere: [[lng, lat], radius] } },
+  });
+  res.status(200).json({
+    data: tours,
+  });
+  return next();
+};
+exports.getDistances = async (req, res, next) => {
+  const { latlng, unit } = req.params;
+  const [lat, lng] = latlng.split(",");
+
+  const multiplier = unit === "mi" ? 0.000621371 : 0.001;
+
+  if (!lat || !lng) {
+    return res.status(400).json({
+      message: "please enter lat and lng in format",
+    });
+  }
+
+  const distances = await Tour.aggregate([
+    {
+      $geoNear: {
+        near: {
+          type: "Point",
+          coordinates: [lng * 1, lat * 1],
+        },
+        distanceField: "distance",
+        distanceMultiplier: multiplier,
+      },
+    },
+    {
+      $project: {
+        distance: 1,
+        name: 1,
+      },
+    },
+  ]);
+
+  res.status(200).json({
+    status: "success",
+    data: {
+      data: distances,
+    },
+  });
+  return next();
 };

@@ -1,8 +1,5 @@
-/* eslint-disable func-names */
 const mongoose = require("mongoose");
 const slugify = require("slugify");
-// const User = require("./User");
-// const validator = require("validator");
 
 const tourSchema = new mongoose.Schema(
   {
@@ -39,6 +36,7 @@ const tourSchema = new mongoose.Schema(
       default: 4.5,
       max: [5, "A tour must have below 5 ratings"],
       min: [1, "A tour must have above 1 rating"],
+      set: (val) => Math.round(val * 10) / 10,
     },
     ratingsQuantity: {
       type: Number,
@@ -119,9 +117,11 @@ const tourSchema = new mongoose.Schema(
     },
   }
 );
+tourSchema.index({ price: 1 });
+tourSchema.index({ slug: 1 });
+tourSchema.index({ startLocation: "2dsphere" });
 
-// eslint-disable-next-line func-names
-tourSchema.virtual("durationWeeks").get(function () {
+tourSchema.virtual("durationWeeks").get(function getDurationWeeks() {
   return this.duration / 7;
 });
 
@@ -132,9 +132,8 @@ tourSchema.virtual("reviews", {
   localField: "_id",
 });
 
-// doucment middleware : runs before save command and create command
-// eslint-disable-next-line func-names
-tourSchema.pre("save", function (next) {
+// document middleware : runs before save command and create command
+tourSchema.pre("save", function save(next) {
   this.slug = slugify(this.name, { lower: true });
   next();
 });
@@ -151,13 +150,12 @@ tourSchema.pre("save", function (next) {
 
 // Query middleware
 
-// eslint-disable-next-line func-names
-tourSchema.pre(/^find/, function (next) {
+tourSchema.pre(/^find/, function find(next) {
   this.find({ secretTour: { $ne: true } });
   next();
 });
 
-tourSchema.pre(/^find/, function (next) {
+tourSchema.pre(/^find/, function find(next) {
   this.populate({
     path: "guides",
     select: "-__v -passwordChangedAt",
@@ -167,10 +165,10 @@ tourSchema.pre(/^find/, function (next) {
 
 // aggregation middleware
 // eslint-disable-next-line func-names
-tourSchema.pre("aggregate", function (next) {
-  this.pipeline().unshift({ $match: { secretTour: { $ne: true } } });
-  next();
-});
+// tourSchema.pre("aggregate", function (next) {
+//   this.pipeline().unshift({ $match: { secretTour: { $ne: true } } });
+//   next();
+// });
 
 const Tour = mongoose.model("Tour", tourSchema);
 

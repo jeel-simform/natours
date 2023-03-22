@@ -19,6 +19,7 @@ const userSchema = new mongoose.Schema({
   },
   photo: {
     type: String,
+    default: "default.jpg",
     // required:[true,'Photo is required']
   },
   role: {
@@ -56,7 +57,6 @@ const userSchema = new mongoose.Schema({
   },
 });
 
-// eslint-disable-next-line func-names, consistent-return
 userSchema.pre("save", async function (next) {
   // Only run this function if password was actually modified
   if (!this.isModified("password")) return next();
@@ -66,9 +66,21 @@ userSchema.pre("save", async function (next) {
 
   // Delete passwordConfirm field
   this.passwordConfirm = undefined;
-  next();
+  return next();
 });
-// eslint-disable-next-line func-names
+userSchema.pre("save", function (next) {
+  if (!this.isModified("password") || this.isNew) return next();
+
+  this.passwordChangedAt = Date.now() - 1000;
+  return next();
+});
+userSchema.pre(/^find/, function (next) {
+  this.find({
+    active: { $ne: false },
+  });
+  return next();
+});
+
 userSchema.methods.correctPassword = async function (
   candidatePassword,
   userPassword
@@ -76,10 +88,9 @@ userSchema.methods.correctPassword = async function (
   return bcrypt.compare(candidatePassword, userPassword);
 };
 userSchema.methods.changedPasswordAfter = function (JWTTimestamp) {
-  // console.log("function called");
   if (this.passwordChangedAt) {
     const changedTimestamp = +(this.passwordChangedAt.getTime() / 1000);
-    // console.log(changedTimestamp, JWTTimestamp);
+
     return JWTTimestamp < changedTimestamp;
   }
   return false;
@@ -97,19 +108,6 @@ userSchema.methods.createPasswordResetToken = function () {
   return resetToken;
 };
 
-// eslint-disable-next-line consistent-return
-userSchema.pre("save", function (next) {
-  if (!this.isModified("password") || this.isNew) return next();
-
-  this.passwordChangedAt = Date.now() - 1000;
-  next();
-});
-userSchema.pre(/^find/, function (next) {
-  this.find({
-    active: { $ne: false },
-  });
-  next();
-});
 const User = mongoose.model("User", userSchema);
 
 module.exports = User;

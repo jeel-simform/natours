@@ -72,10 +72,8 @@ mongoose
   })
   .then(() => {
     natoursLogger.log("info", "connected to database");
-    // console.log("connected to database");
   });
 
 app.listen(port, () => {
-  //   console.log("server is listen on port", port);
   natoursLogger.log("info", `server is listen on port ${port}`);
 });

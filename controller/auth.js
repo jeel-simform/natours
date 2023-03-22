@@ -1,8 +1,5 @@
-/* eslint-disable consistent-return */
-/* eslint-disable no-underscore-dangle */
 const crypto = require("crypto");
 const jwt = require("jsonwebtoken");
-const { promisify } = require("util");
 
 const User = require("../models/User");
 const sendEmail = require("../utils/email");
@@ -13,15 +10,14 @@ const signToken = (id) =>
   });
 
 const createSendToken = (user, statusCode, res) => {
+  // eslint-disable-next-line no-underscore-dangle
   const token = signToken(user._id);
-  // console.log(token);
   const cookieOptions = {
     expires: new Date(
       Date.now() + process.env.JWT_COOKIE_EXPIRES_IN * 24 * 60 * 60 * 1000
     ),
     httpOnly: true,
   };
-  // console.log(cookieOptions);
   if (process.env.NODE_ENV === "production") cookieOptions.secure = true;
 
   res.cookie("jwt", token, cookieOptions);
@@ -31,7 +27,6 @@ const createSendToken = (user, statusCode, res) => {
   user.password = undefined;
 
   res.status(statusCode).json({
-    status: "success",
     token,
     data: {
       user,
@@ -41,14 +36,21 @@ const createSendToken = (user, statusCode, res) => {
 
 exports.signup = async (req, res) => {
   try {
+    const { name, email, password, passwordConfirm, role } = req.body;
     const newUser = await User.create({
-      name: req.body.name,
-      email: req.body.email,
-      password: req.body.password,
-      passwordConfirm: req.body.passwordConfirm,
-      role: req.body.role,
+      name,
+      email,
+      password,
+      passwordConfirm,
+      role,
     });
     createSendToken(newUser, 201, res);
+    await sendEmail({
+      email: newUser.email,
+      subject: "Welcome to the Natours Family!",
+      message: `Dear ${newUser.name},
+      Welcome to Natours! We are thrilled to have you join us and look forward to getting to know you.`,
+    });
   } catch (err) {
     res.status(404).json(err);
   }
@@ -65,50 +67,36 @@ exports.login = async (req, res) => {
       });
     }
     const user = await User.findOne({ email }).select("+password");
-    // console.log(user);
 
     if (!user || !(await user.correctPassword(password, user.password))) {
       return res.status(401).json({
         message: "Invalid credentials",
       });
     }
-
-    // console.log(user);
-    createSendToken(user, 200, res);
+    return createSendToken(user, 200, res);
   } catch (err) {
-    res.status(404).json({
-      status: "fail",
+    return res.status(404).json({
       message: err,
     });
   }
+  // return next();
 };
 
 exports.protect = async (req, res, next) => {
-  // console.log("function called");
   try {
-    // console.log("function called");
     let token;
-    // console.log(req.header.authorization);
     if (
       req.headers.authorization &&
       req.headers.authorization.startsWith("Bearer")
     ) {
-      // eslint-disable-next-line prefer-destructuring
-      token = req.headers.authorization.split(" ")[1];
-      // console.log("token ", token);
+      [, token] = req.headers.authorization.split(" ");
     }
-    // console.log("in try block");
-    // console.log(token);
     if (!token) {
       return res.status(401).json({
         message: "you a re not login please login",
       });
-      // return next(new AppError("you are not login please login", 401));
     }
-
-    // console.log(token);
-    const decoded = await promisify(jwt.verify)(token, process.env.JWT_SECRET);
-    // console.log(decoded);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
     const currentUser = await User.findById(decoded.id);
     if (!currentUser) {
@@ -129,7 +117,7 @@ exports.protect = async (req, res, next) => {
     });
   }
 
-  next();
+  return next();
 };
 
 exports.restrictTo =
@@ -140,7 +128,7 @@ exports.restrictTo =
         message: "you do not have permission to perform this action",
       });
     }
-    next();
+    return next();
   };
 
 exports.forgotPassword = async (req, res, next) => {
@@ -156,14 +144,19 @@ exports.forgotPassword = async (req, res, next) => {
     const resetToken = user.createPasswordResetToken();
     await user.save({ validateBeforeSave: false });
 
-    const resetURL = `${req.protocol}://${req.get(
-      "host"
-    )}/api/v1/users/resetPassword/${resetToken}`;
+    // const resetURL = `${req.protocol}://${req.get(
+    //   "host"
+    // )}/api/v1/users/resetPassword/${resetToken}`;
 
-    const message = `Forgot your password? Click on the following link to reset your password: ${resetURL} \n If you didn't forgot your password please ignore this email`;
-    // console.log(user.email);
+    // const message = `Forgot your password? Click on the following link to reset your password: ${resetURL} \n If you didn't forgot your password please ignore this email`;
 
     try {
+      const resetURL = `${req.protocol}://${req.get(
+        "host"
+      )}/api/v1/users/resetPassword/${resetToken}`;
+
+      const message = `Forgot your password? Click on the following link to reset your password: ${resetURL} \n If you didn't forgot your password please ignore this email`;
+
       await sendEmail({
         email: user.email,
         subject: "your password reset token (valid for 10 min)",
@@ -184,11 +177,11 @@ exports.forgotPassword = async (req, res, next) => {
       });
     }
   } catch (err) {
-    res.status(500).json({
+    return res.status(500).json({
       message: err,
     });
   }
-  next();
+  return next();
 };
 exports.resetPassword = async (req, res) => {
   const hashedToken = crypto
@@ -214,7 +207,9 @@ exports.resetPassword = async (req, res) => {
 
   await user.save();
 
-  createSendToken(user, 200, res);
+  // next()
+  return createSendToken(user, 200, res);
+  // next();
 };
 
 exports.updatePassword = async (req, res) => {
@@ -230,5 +225,5 @@ exports.updatePassword = async (req, res) => {
 
   await user.save();
 
-  createSendToken(user, 200, res);
+  return createSendToken(user, 200, res);
 };
