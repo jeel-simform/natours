@@ -131,7 +131,7 @@ exports.restrictTo =
     return next();
   };
 
-exports.forgotPassword = async (req, res, next) => {
+exports.forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
     const user = await User.findOne({ email });
@@ -162,9 +162,7 @@ exports.forgotPassword = async (req, res, next) => {
         subject: "your password reset token (valid for 10 min)",
         message,
       });
-      // console.log(temp);
-
-      res.status(200).json({
+      return res.status(200).json({
         message: "Token sent to mail",
       });
     } catch (err) {
@@ -178,10 +176,10 @@ exports.forgotPassword = async (req, res, next) => {
     }
   } catch (err) {
     return res.status(500).json({
-      message: err,
+      message: "There was an error sending the email. Try again later!",
     });
   }
-  return next();
+  // return next();
 };
 exports.resetPassword = async (req, res) => {
   const hashedToken = crypto
